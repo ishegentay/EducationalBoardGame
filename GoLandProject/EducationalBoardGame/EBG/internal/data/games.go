@@ -18,10 +18,10 @@ type Game struct {
 func ValidateMovie(v *validator.Validator, game *Game) {
 	v.Check(game.Title != "", "title", "must be provided")
 	v.Check(len(game.Title) <= 500, "title", "must not be more than 500 bytes long")
-	v.Check(game.Score != 0, "runtime", "must be provided")
-	v.Check(game.Score > 0, "runtime", "must be a positive integer")
-	v.Check(game.Games != nil, "genres", "must be provided")
-	v.Check(len(game.Games) >= 1, "genres", "must contain at least 1 genre")
-	v.Check(len(game.Games) <= 5, "genres", "must not contain more than 5 genres")
-	v.Check(validator.Unique(game.Games), "genres", "must not contain duplicate values")
+	v.Check(game.Score != 0, "score", "must be provided")
+	v.Check(game.Score > 0, "score", "must be a positive integer")
+	v.Check(game.Games != nil, "games", "must be provided")
+	v.Check(len(game.Games) >= 1, "games", "must contain at least 1 genre")
+	v.Check(len(game.Games) <= 5, "games", "must not contain more than 5 genres")
+	v.Check(validator.Unique(game.Games), "games", "must not contain duplicate values")
 }
