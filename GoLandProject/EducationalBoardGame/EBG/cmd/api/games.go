@@ -2,7 +2,7 @@ package main
 
 import (
 	"EBG.IssataySheg.net/internal/data"
-	"encoding/json"
+	"EBG.IssataySheg.net/internal/validator"
 	"fmt"
 	"net/http"
 	"time"
@@ -14,24 +14,33 @@ func (app *application) createGameHandler(w http.ResponseWriter, r *http.Request
 	// of the Movie struct that we created earlier). This struct will be our *target
 	// decode destination*.
 	var input struct {
-		Title string   `json:"title"`
-		Score int32    `json:"score"`
-		Games []string `json:"games"`
+		Title string     `json:"title"`
+		Score data.Score `json:"score"`
+		Games []string   `json:"games"`
 	}
-	// Initialize a new json.Decoder instance which reads from the request body, and
-	// then use the Decode() method to decode the body contents into the input struct.
-	// Importantly, notice that when we call Decode() we pass a *pointer* to the input
-	// struct as the target decode destination. If there was an error during decoding,
-	// we also use our generic errorResponse() helper to send the client a 400 Bad
-	// Request response containing the error message.
-	err := json.NewDecoder(r.Body).Decode(&input)
+	err := app.readJSON(w, r, &input)
 	if err != nil {
-		app.errorResponse(w, r, http.StatusBadRequest, err.Error())
+		// Use the new badRequestResponse() helper.
+		app.badRequestResponse(w, r, err)
 		return
 	}
-	// Dump the contents of the input struct in a HTTP response.
+	// Copy the values from the input struct to a new Movie struct.
+	movie := &data.Game{
+		Title: input.Title,
+		Score: input.Score,
+		Games: input.Games,
+	}
+	// Initialize a new Validator.
+	v := validator.New()
+	// Call the ValidateMovie() function and return a response containing the errors if
+	// any of the checks fail.
+	if data.ValidateMovie(v, movie); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
 	fmt.Fprintf(w, "%+v\n", input)
 }
+
 func (app *application) showGameHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDParam(r)
 	if err != nil {
