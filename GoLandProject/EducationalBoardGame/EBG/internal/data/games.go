@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"github.com/lib/pq"
 	"time"
 )
@@ -161,4 +162,63 @@ func (m GameModel) Delete(id int64) error { // Return an ErrRecordNotFound error
 		return ErrRecordNotFound
 	}
 	return nil
+}
+
+// Create a new GetAll() method which returns a slice of movies. Although we're not
+// using them right now, we've set this up to accept the various filter parameters as
+// arguments.
+func (m GameModel) GetAll(title string, Games []string, filters Filters) ([]*Game, Metadata, error) {
+	// Construct the SQL query to retrieve all movie records.
+	query := fmt.Sprintf(`
+			SELECT count(*) OVER(), id, created_at, title, score, games, version
+			FROM games
+			WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', $1) OR $1 = '')
+			AND (games @> $2 OR $2 = '{}')
+			ORDER BY %s %s, id ASC
+			LIMIT $3 OFFSET $4`, filters.sortColumn(), filters.sortDirection())
+	// Create a context with a 3-second timeout.
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	args := []interface{}{title, pq.Array(Games), filters.limit(), filters.offset()}
+	// And then pass the args slice to QueryContext() as a variadic parameter.
+	rows, err := m.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, Metadata{}, err // Update this to return an empty Metadata struct.
+	}
+	defer rows.Close()
+	// Initialize an empty slice to hold the movie data.
+	totalRecords := 0
+	games := []*Game{}
+	// Use rows.Next to iterate through the rows in the resultset.
+	for rows.Next() {
+		// Initialize an empty Movie struct to hold the data for an individual movie.
+		var game Game
+		// Scan the values from the row into the Movie struct. Again, note that we're
+		// using the pq.Array() adapter on the genres field here.
+		err := rows.Scan(
+			&totalRecords,
+			&game.ID,
+			&game.CreatedAt,
+			&game.Title,
+			&game.Score,
+			pq.Array(&game.Games),
+			&game.Version,
+		)
+		if err != nil {
+			return nil, Metadata{}, err
+		}
+
+		games = append(games, &game)
+	}
+	// When the rows.Next() loop has finished, call rows.Err() to retrieve any error
+	// that was encountered during the iteration.
+	if err = rows.Err(); err != nil {
+		return nil, Metadata{}, err
+	}
+	// Generate a Metadata struct, passing in the total record count and pagination
+	// parameters from the client.
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+	// Include the metadata struct when returning.
+	return games, metadata, nil
+
 }
