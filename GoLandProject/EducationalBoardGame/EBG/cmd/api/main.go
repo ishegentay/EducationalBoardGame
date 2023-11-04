@@ -6,9 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"flag"
-	"fmt"
 	_ "github.com/lib/pq"
-	"net/http"
 	"os"
 	"time"
 )
@@ -24,9 +22,6 @@ type config struct {
 		maxIdleConns int
 		maxIdleTime  string
 	}
-	// Add a new limiter struct containing fields for the requests-per-second and burst
-	// values, and a boolean field which we can use to enable/disable rate limiting
-	// altogether.
 	limiter struct {
 		rps     float64
 		burst   int
@@ -58,9 +53,6 @@ func main() {
 
 	db, err := openDB(cfg)
 	if err != nil {
-		// Use the PrintFatal() method to write a log entry containing the error at the
-		// FATAL level and exit. We have no additional properties to include in the log
-		// entry, so we pass nil as the second parameter.
 		logger.PrintFatal(err, nil)
 	}
 
@@ -72,20 +64,11 @@ func main() {
 		logger: logger,
 		models: data.NewModels(db),
 	}
-	srv := &http.Server{
-		Addr:         fmt.Sprintf(":%d", cfg.port),
-		Handler:      app.routes(),
-		IdleTimeout:  time.Minute,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 30 * time.Second,
+
+	err = app.serve()
+	if err != nil {
+		logger.PrintFatal(err, nil)
 	}
-	logger.PrintInfo("starting server", map[string]string{
-		"addr": srv.Addr,
-		"env":  cfg.env,
-	})
-	err = srv.ListenAndServe()
-	// Use the PrintFatal() method to log the error and exit.
-	logger.PrintFatal(err, nil)
 }
 
 func openDB(cfg config) (*sql.DB, error) {
