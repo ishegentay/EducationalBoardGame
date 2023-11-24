@@ -5,6 +5,7 @@ go 1.21.1
 require github.com/julienschmidt/httprouter v1.3.0
 
 require (
+	github.com/go-mail/mail/v2 v2.3.0 // indirect
 	github.com/golang-migrate/migrate v3.5.4+incompatible // indirect
 	github.com/golang-migrate/migrate/v4 v4.16.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
@@ -20,4 +21,5 @@ require (
 	golang.org/x/time v0.4.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
+	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 )
