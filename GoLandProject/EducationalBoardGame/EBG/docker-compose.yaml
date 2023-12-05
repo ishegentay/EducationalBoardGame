@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  GoLandProject:
+    build: ./
+    command: ./app/cmd/api
+    ports:
+      - 8000:8000
+    depends_on:
+      - db
+    entrypoint:
+      - greenlight:pa55word@localhost/greenlight?sslmode=disable
+  db:
+    restart: always
+    image: postgres:latest
+    volumes:
+      - ./.data/postgres://greenlight:pa55word@localhost/greenlight?sslmode=disable
+    ports:
+      - 5436:5436
